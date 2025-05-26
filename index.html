@@ -3,195 +3,587 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MS Search Topbar</title>
+<title>MS Search Topbar with Smooth Pull-Down Scroll Menu</title>
 <style>
-  /* Importing a modern system font stack */
-  body {
-    margin: 0;
-    background-color: #0a0a0a;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  :root {
+    --background-color: #0a0a0a;
+    --topbar-background: linear-gradient(90deg, #161616 0%, #222222 100%);
+    --logo-background: #111;
+    --input-background: #111;
+    --border-color: #444;
+    --focus-color: #66aaff;
+    --text-color: white;
+    --placeholder-color: #888;
+    --menu-background: #181818;
+    --menu-border: #333;
+    --icon-color: #66aaff;
   }
 
-  /* Top bar container */
-  .topbar {
+  body {
+    margin: 0;
+    background-color: var(--background-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Pull handle bar at the very top */
+  #pull-handle {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--focus-color);
+    cursor: grab;
+    z-index: 1101;
+    box-shadow: 0 0 8px var(--focus-color);
+    transition: background 0.3s ease;
+    user-select: none;
+  }
+  #pull-handle:active {
+    cursor: grabbing;
+    background: #5588ff;
+    box-shadow: 0 0 12px #5588ff;
+  }
+  #pull-handle:hover {
+    background: #77aaff;
+    box-shadow: 0 0 10px #77aaff;
+  }
+
+  /* Dropdown menu container fixed fullscreen, starts hidden above viewport */
+  #dropdown-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--menu-background);
+    overflow: hidden;
+    z-index: 1100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform: translateY(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    perspective: 800px;
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.8);
+  }
+
+  /* When fully open */
+  #dropdown-menu.open {
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Container holding folding side panels */
+  #fold-panels {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+  }
+
+  .fold-panel {
+    background: var(--menu-background);
+    width: 50%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--menu-border);
+    transform-origin: center bottom;
+    transform-style: preserve-3d;
+    box-shadow: inset 0 0 20px rgba(255 255 255 / 0.1);
+  }
+
+  #fold-left {
+    border-right: none;
+    clip-path: polygon(0 0, 100% 10%, 100% 90%, 0% 100%);
+    transform-origin: bottom right;
+    transform: rotateX(0deg) rotateZ(0deg);
+  }
+  #fold-right {
+    border-left: none;
+    clip-path: polygon(0% 10%, 100% 0, 100% 100%, 0 90%);
+    transform-origin: bottom left;
+    transform: rotateX(0deg) rotateZ(0deg);
+  }
+
+  /* Folding animations */
+  #dropdown-menu.open #fold-left {
+    animation: foldLeftAnim 0.4s forwards ease-out;
+  }
+  #dropdown-menu.open #fold-right {
+    animation: foldRightAnim 0.4s forwards ease-out;
+  }
+  #dropdown-menu.closing #fold-left {
+    animation: foldLeftCloseAnim 0.4s forwards ease-in;
+  }
+  #dropdown-menu.closing #fold-right {
+    animation: foldRightCloseAnim 0.4s forwards ease-in;
+  }
+
+  @keyframes foldLeftAnim {
+    0% { transform: rotateX(0deg) rotateZ(0deg); }
+    100% { transform: rotateX(60deg) rotateZ(-25deg); }
+  }
+  @keyframes foldRightAnim {
+    0% { transform: rotateX(0deg) rotateZ(0deg); }
+    100% { transform: rotateX(60deg) rotateZ(25deg); }
+  }
+  @keyframes foldLeftCloseAnim {
+    0% { transform: rotateX(60deg) rotateZ(-25deg); }
+    100% { transform: rotateX(0deg) rotateZ(0deg); }
+  }
+  @keyframes foldRightCloseAnim {
+    0% { transform: rotateX(60deg) rotateZ(25deg); }
+    100% { transform: rotateX(0deg) rotateZ(0deg); }
+  }
+
+  /* The menu content - center of dropdown */
+  #menu-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    padding: 30px 40px;
+    box-sizing: border-box;
+    color: var(--text-color);
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 32px;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease 0.4s;
+  }
+  #dropdown-menu.open #menu-content {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menu-list {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    align-items: center;
+  }
+  .menu-item {
+    font-size: 22px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: background-color 0.25s ease;
+    user-select: none;
+  }
+  .menu-item:hover,
+  .menu-item:focus {
+    background-color: var(--focus-color);
+    outline: none;
+  }
+  .icon-list {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    align-items: center;
+  }
+  .icon {
+    width: 28px;
+    height: 28px;
+    fill: var(--icon-color);
+    cursor: pointer;
+    transition: fill 0.3s ease;
+    user-select: none;
+  }
+  .icon:hover,
+  .icon:focus {
+    fill: white;
+    outline: none;
+  }
+
+  /* Topbar styles */
+  header.topbar {
     display: flex;
     align-items: center;
     gap: 16px;
     padding: 10px 20px;
-    background: linear-gradient(90deg, #161616 0%, #222222 100%);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.8);
+    background: var(--topbar-background);
     border-bottom: 1px solid #222;
+    width: 100vw;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 100;
   }
-
-  /* MS logo box */
   .logo-box {
     width: 60px;
     height: 40px;
-    background-color: #111;
+    background-color: var(--logo-background);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow:
-      inset 0 0 4px #333,
-      0 1px 2px rgba(255,255,255,0.04);
     cursor: default;
     user-select: none;
   }
-
-  /* White line MS logo - using SVG lines */
   svg.ms-logo {
     width: 40px;
     height: 24px;
-    stroke: white;
+    stroke: var(--text-color);
     stroke-width: 1.3;
     stroke-linecap: round;
   }
-
-  /* Loader box starts as small circle, expands to wide rectangular search container */
   .loader-box {
-    background-color: #111;
-    box-shadow:
-      inset 0 0 6px #333,
-      0 1px 2px rgba(255,255,255,0.04);
+    background-color: var(--logo-background);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: visible;
-
     width: 40px;
     height: 40px;
-    border-radius: 50%;
-
+    border-radius: 6px;
     transition:
       width 0.4s ease,
       border-radius 0.4s ease;
+    flex-shrink: 0;
   }
-  /* Expanded state */
   .loader-box.expanded {
     width: 180px;
     border-radius: 10px;
   }
-
-  /* Circular spinner container */
   .circular-spinner {
     position: relative;
     width: 24px;
     height: 24px;
   }
-
-  /* Each thin line in spinner */
   .spinner-line {
     position: absolute;
     top: 50%;
     left: 50%;
     width: 2px;
     height: 7px;
-    background: white;
+    background: var(--text-color);
     border-radius: 1px;
     transform-origin: center bottom;
     opacity: 0.15;
     animation: fadeAnim 1.2s linear infinite;
   }
-  /* 12 lines spaced every 30 degrees */
-  .spinner-line:nth-child(1)  { transform: rotate(0deg) translate(-50%, -100%);  animation-delay: 0s;    }
-  .spinner-line:nth-child(2)  { transform: rotate(30deg) translate(-50%, -100%); animation-delay: 0.1s;  }
-  .spinner-line:nth-child(3)  { transform: rotate(60deg) translate(-50%, -100%); animation-delay: 0.2s;  }
-  .spinner-line:nth-child(4)  { transform: rotate(90deg) translate(-50%, -100%); animation-delay: 0.3s;  }
-  .spinner-line:nth-child(5)  { transform: rotate(120deg) translate(-50%, -100%);animation-delay: 0.4s;  }
-  .spinner-line:nth-child(6)  { transform: rotate(150deg) translate(-50%, -100%);animation-delay: 0.5s;  }
-  .spinner-line:nth-child(7)  { transform: rotate(180deg) translate(-50%, -100%);animation-delay: 0.6s;  }
-  .spinner-line:nth-child(8)  { transform: rotate(210deg) translate(-50%, -100%);animation-delay: 0.7s;  }
-  .spinner-line:nth-child(9)  { transform: rotate(240deg) translate(-50%, -100%);animation-delay: 0.8s;  }
-  .spinner-line:nth-child(10) { transform: rotate(270deg) translate(-50%, -100%);animation-delay: 0.9s;  }
-  .spinner-line:nth-child(11) { transform: rotate(300deg) translate(-50%, -100%);animation-delay: 1.0s;  }
-  .spinner-line:nth-child(12) { transform: rotate(330deg) translate(-50%, -100%);animation-delay: 1.1s;  }
-
+  .spinner-line:nth-child(1)  { transform: rotate(0deg) translate(-50%, -100%);  animation-delay: 0s; }
+  .spinner-line:nth-child(2)  { transform: rotate(30deg) translate(-50%, -100%); animation-delay: 0.1s; }
+  .spinner-line:nth-child(3)  { transform: rotate(60deg) translate(-50%, -100%); animation-delay: 0.2s; }
+  .spinner-line:nth-child(4)  { transform: rotate(90deg) translate(-50%, -100%); animation-delay: 0.3s; }
+  .spinner-line:nth-child(5)  { transform: rotate(120deg) translate(-50%, -100%); animation-delay: 0.4s; }
+  .spinner-line:nth-child(6)  { transform: rotate(150deg) translate(-50%, -100%); animation-delay: 0.5s; }
+  .spinner-line:nth-child(7)  { transform: rotate(180deg) translate(-50%, -100%); animation-delay: 0.6s; }
+  .spinner-line:nth-child(8)  { transform: rotate(210deg) translate(-50%, -100%); animation-delay: 0.7s; }
+  .spinner-line:nth-child(9)  { transform: rotate(240deg) translate(-50%, -100%); animation-delay: 0.8s; }
+  .spinner-line:nth-child(10) { transform: rotate(270deg) translate(-50%, -100%); animation-delay: 0.9s; }
+  .spinner-line:nth-child(11) { transform: rotate(300deg) translate(-50%, -100%); animation-delay: 1.0s; }
+  .spinner-line:nth-child(12) { transform: rotate(330deg) translate(-50%, -100%); animation-delay: 1.1s; }
   @keyframes fadeAnim {
     0%   { opacity: 1; }
     100% { opacity: 0.15; }
   }
-
-  /* Search input style after loader finishes */
   .search-input {
     width: 160px;
     height: 32px;
     border-radius: 10px;
-    border: 1px solid #444;
-    background-color: #111;
-    color: white;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-color);
     font-size: 16px;
     padding: 0 12px;
     outline-offset: 1px;
-    outline-color: #66aaff;
+    outline-color: var(--focus-color);
     transition: border-color 0.3s ease, outline-color 0.3s ease;
     font-family: inherit;
   }
   .search-input::placeholder {
-    color: #888;
+    color: var(--placeholder-color);
   }
   .search-input:focus {
-    border-color: #66aaff;
-    outline: 2px solid #66aaff;
+    border-color: var(--focus-color);
+    outline: 2px solid var(--focus-color);
   }
 </style>
 </head>
 <body>
-  <div class="topbar" role="banner" aria-label="Top navigation bar">
-    <div class="logo-box" aria-label="MS logo">
-      <svg class="ms-logo" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-        <!-- Letter M -->
-        <path d="M2 22 L2 2 L10 18 L18 2 L18 22" />
-        <!-- Letter S -->
-        <path d="M22 6
-                 C22 6, 30 6, 30 12
-                 C30 18, 22 18, 22 18" />
+
+<!-- Pull handle for dropdown -->
+<div id="pull-handle" role="button" aria-expanded="false" aria-controls="dropdown-menu" aria-label="Toggle menu" tabindex="0"></div>
+
+<!-- Dropdown menu with folding animation, fullscreen -->
+<div id="dropdown-menu" aria-hidden="true">
+  <div id="fold-panels">
+    <div class="fold-panel" id="fold-left" aria-hidden="true"></div>
+    <div class="fold-panel" id="fold-right" aria-hidden="true"></div>
+  </div>
+  <div id="menu-content" tabindex="-1">
+    <nav>
+      <ul class="menu-list" role="menubar" aria-label="Primary menu">
+        <li class="menu-item" role="menuitem" tabindex="0">Home</li>
+        <li class="menu-item" role="menuitem" tabindex="0">About</li>
+        <li class="menu-item" role="menuitem" tabindex="0">Contact</li>
+      </ul>
+    </nav>
+    <div class="icon-list" role="toolbar" aria-label="Icon actions">
+      <svg class="icon" tabindex="0" role="button" aria-label="Settings" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-2a6 6 0 0 1 4.472 10.14l2.7 2.7-1.414 1.414-2.7-2.7A6 6 0 1 1 12 6z"/>
+      </svg>
+      <svg class="icon" tabindex="0" role="button" aria-label="Profile" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+      <svg class="icon" tabindex="0" role="button" aria-label="Logout" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3H4c-1.1 0-2 .9-2 2v4h2V5h16v14H4v-4H2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
       </svg>
     </div>
+  </div>
+</div>
 
-    <div class="loader-box" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading search">
-      <div class="circular-spinner" aria-hidden="true">
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-      </div>
-    </div>
+<header class="topbar" role="banner" aria-label="Top navigation bar">
+  <div class="logo-box" aria-label="MS logo">
+    <svg class="ms-logo" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <title>MS Logo</title>
+      <path d="M2 22 L2 2 L10 18 L18 2 L18 22" />
+      <path d="M22 6 C22 6, 30 6, 30 12 C30 18, 22 18, 22 18" />
+    </svg>
   </div>
 
+  <div class="loader-box" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading search">
+    <div class="circular-spinner" aria-hidden="true">
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+      <div class="spinner-line"></div>
+    </div>
+  </div>
+</header>
+
 <script>
-  // After 3 seconds expand loader box then show input
+  // Search loader expansion
   setTimeout(() => {
     const loaderBox = document.querySelector('.loader-box');
-
-    // Add expanded class to animate width and border-radius
     loaderBox.classList.add('expanded');
-
-    // Wait for transition (400ms) then replace content with input
     setTimeout(() => {
       loaderBox.innerHTML = '';
-
       const input = document.createElement('input');
       input.type = 'search';
       input.className = 'search-input';
       input.placeholder = 'Search...';
       input.setAttribute('aria-label', 'Search');
-      loaderBox.appendChild(input);
-
-      input.focus();
+      if (input) {
+        loaderBox.appendChild(input);
+        input.focus();
+      } else {
+        console.error('Failed to create search input');
+      }
     }, 400);
-
   }, 3000);
+
+  const pullHandle = document.getElementById('pull-handle');
+  const dropdownMenu = document.getElementById('dropdown-menu');
+  const menuContent = document.getElementById('menu-content');
+  const foldLeft = document.getElementById('fold-left');
+  const foldRight = document.getElementById('fold-right');
+
+  let isOpen = false;
+  let isAnimating = false;
+
+  // Constants for pull down interaction
+  const maxPullDistance = 350; // max pixels to pull
+  const pullThreshold = 140; // pixels needed to open fully
+  let startY = 0;
+  let currentY = 0;
+  let pullDistance = 0;
+  let dragging = false;
+
+  // Helper easing function for smooth animation
+  function easeOutQuad(t) {
+    return t * (2 - t);
+  }
+
+  function applyPullTransform(distance) {
+    // Limit distance to maxPullDistance with easing effect
+    let pullRatio = distance / maxPullDistance;
+    if (pullRatio > 1) pullRatio = 1;
+    // Apply easing for smoothness
+    const eased = easeOutQuad(pullRatio);
+    const translateY = eased * maxPullDistance;
+
+    // Transform dropdown menu down by translateY
+    dropdownMenu.style.transform = `translateY(${translateY - 100}%)`; // -100% to start hidden
+
+    // Folding panels rotation scales with pull progress but limited within [0,1]
+    const foldProgress = Math.min(pullRatio, 1);
+    // Calculate folds rotation in degrees (convert from radians)
+    const maxFoldX = 60;
+    const maxFoldZ = 25;
+
+    foldLeft.style.transform = `rotateX(${foldProgress * maxFoldX}deg) rotateZ(${-foldProgress * maxFoldZ}deg)`;
+    foldRight.style.transform = `rotateX(${foldProgress * maxFoldX}deg) rotateZ(${foldProgress * maxFoldZ}deg)`;
+
+    // Menu content opacity scales with fold progress and pull progress with clamp
+    menuContent.style.opacity = foldProgress;
+    if (foldProgress > 0.05) {
+      menuContent.style.pointerEvents = 'auto';
+    } else {
+      menuContent.style.pointerEvents = 'none';
+    }
+  }
+
+  function resetPull() {
+    // Animate back to closed state smoothly
+    dropdownMenu.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    dropdownMenu.style.transform = 'translateY(-100%)';
+    foldLeft.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    foldRight.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    foldLeft.style.transform = 'rotateX(0deg) rotateZ(0deg)';
+    foldRight.style.transform = 'rotateX(0deg) rotateZ(0deg)';
+    menuContent.style.transition = 'opacity 0.3s ease';
+    menuContent.style.opacity = 0;
+    menuContent.style.pointerEvents = 'none';
+    setTimeout(() => {
+      dropdownMenu.style.transition = '';
+      foldLeft.style.transition = '';
+      foldRight.style.transition = '';
+      menuContent.style.transition = '';
+    }, 310);
+  }
+
+  function finalizeOpen() {
+    dropdownMenu.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    dropdownMenu.style.transform = 'translateY(0)';
+    foldLeft.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    foldRight.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    foldLeft.style.transform = `rotateX(60deg) rotateZ(-25deg)`;
+    foldRight.style.transform = `rotateX(60deg) rotateZ(25deg)`;
+    menuContent.style.transition = 'opacity 0.3s ease';
+    menuContent.style.opacity = 1;
+    menuContent.style.pointerEvents = 'auto';
+
+    setTimeout(() => {
+      dropdownMenu.style.transition = '';
+      foldLeft.style.transition = '';
+      foldRight.style.transition = '';
+      menuContent.style.transition = '';
+      menuContent.focus();
+      isAnimating = false;
+      isOpen = true;
+      pullHandle.setAttribute('aria-expanded', 'true');
+      dropdownMenu.setAttribute('aria-hidden', 'false');
+    }, 310);
+  }
+
+  function finalizeClose() {
+    isAnimating = true;
+    resetPull();
+    setTimeout(() => {
+      isAnimating = false;
+      isOpen = false;
+      pullHandle.setAttribute('aria-expanded', 'false');
+      dropdownMenu.setAttribute('aria-hidden', 'true');
+    }, 310);
+  }
+
+  // Pointer event handlers
+  function onPointerDown(e) {
+    if (isAnimating) return;
+    dragging = true;
+    startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+    pullDistance = 0;
+
+    // Cancel any transition so drag is immediate
+    dropdownMenu.style.transition = '';
+    foldLeft.style.transition = '';
+    foldRight.style.transition = '';
+    menuContent.style.transition = '';
+  }
+
+  function onPointerMove(e) {
+    if (!dragging) return;
+    currentY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+    pullDistance = currentY - startY;
+
+    if (pullDistance < 0) pullDistance = 0; // no upward drag
+    if (pullDistance > maxPullDistance) pullDistance = maxPullDistance;
+
+    applyPullTransform(pullDistance);
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    dragging = false;
+
+    // Decide whether to open or cancel based on pullDistance and threshold
+    if (pullDistance >= pullThreshold) {
+      isAnimating = true;
+      finalizeOpen();
+    } else {
+      finalizeClose();
+    }
+  }
+
+  // Click toggle for users who don't drag
+  pullHandle.addEventListener('click', () => {
+    if (dragging) return; // ignore click during drag
+    if (isAnimating) return;
+
+    if (isOpen) {
+      finalizeClose();
+    } else {
+      isAnimating = true;
+      finalizeOpen();
+    }
+  });
+
+  // Keyboard accessibility: space or enter toggles menu
+  pullHandle.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      pullHandle.click();
+    }
+  });
+
+  // Handle pointer / touch events for drag
+  pullHandle.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+  window.addEventListener('touchcancel', onPointerUp);
+
+  // ESC key closes menu if open and menu content is focused
+  menuContent.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (isOpen && !isAnimating) {
+        finalizeClose();
+        pullHandle.focus();
+      }
+    }
+  });
+
+  // Prevent scrolling when dropdown is open (optional)
+  function preventScroll(e) {
+    if (isOpen) e.preventDefault();
+  }
+  window.addEventListener('touchmove', preventScroll, { passive: false });
+
 </script>
+
 </body>
 </html>
 
