@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A1 Top-Notch Multimedia Hub</title>
+  <style>
+    /* Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121212;
+      color: #eee;
+      overflow-x: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(90deg, #4b6cb7, #182848);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    header h1 {
+      font-weight: 900;
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      color: #f0a500;
+      user-select: none;
+    }
+    header .search-bar {
+      position: relative;
+      flex-grow: 1;
+      max-width: 480px;
+      margin-left: 30px;
+    }
+    header .search-bar input[type="search"] {
+      width: 100%;
+      padding: 10px 14px 10px 40px;
+      border-radius: 30px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 500;
+      box-shadow: inset 1px 1px 6px rgba(255 255 255 / 0.15);
+      background: #282c34;
+      color: #eee;
+      transition: background 0.3s ease;
+    }
+    header .search-bar input[type="search"]:focus {
+      outline: none;
+      background: #3a3f4b;
+      box-shadow: inset 1px 1px 10px #f0a500;
+      color: #f0a500;
+    }
+    header .search-bar svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      fill: #f0a500;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    /* Main content */
+    main {
+      flex-grow: 1;
+      padding: 30px 40px;
+      background: linear-gradient(135deg, #1e2a38, #121212);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    /* Item Card */
+    .item-card {
+      background: #1f2937;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.5);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: default;
+      user-select: none;
+      position: relative;
+    }
+    .item-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 24px 36px rgba(240, 165, 0, 0.6);
+    }
+    .item-thumbnail {
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      height: 160px;
+      background: #000;
+      box-shadow: inset 0 0 40px rgba(240, 165, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+    .item-thumbnail img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .item-card:hover .item-thumbnail img {
+      transform: scale(1.05);
+    }
+    .item-title {
+      font-weight: 800;
+      color: #f0a500;
+      font-size: 1.25rem;
+      margin-bottom: 6px;
+      text-shadow: 0 0 6px #f0a500aa;
+    }
+    .item-desc {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      flex-grow: 1;
+      color: #bbb;
+      margin-bottom: 14px;
+      min-height: 66px;
+    }
+    .item-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    button.action-btn {
+      flex-grow: 1;
+      background: #282c34;
+      color: #f0a500;
+      border: none;
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      border-radius: 8px;
+      box-shadow: inset 0 -2px #c47f00, 0 4px 10px #f0a500a0;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    button.action-btn:hover {
+      background: #f0a500;
+      color: #121212;
+      transform: scale(1.05);
+      box-shadow: 0 0 18px #fab005cc;
+    }
+    button.action-btn:disabled {
+      background: #555;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    button.play-btn {
+      background: linear-gradient(45deg, #28a745, #218838);
+      box-shadow: inset 0 -2px #19692c, 0 4px 10px #28a745a0;
+      color: white;
+    }
+    button.play-btn:hover {
+      background: #218838;
+      box-shadow: 0 0 24px #28a745cc;
+      color: #d4edda;
+    }
+
+    /* Modal */
+    #modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(18, 18, 18, 0.9);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+    #modal-overlay.active {
+      display: flex;
+    }
+    #modal-content {
+      background: #222b38;
+      border-radius: 15px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 16px 50px #f0a500cc;
+      position: relative;
+      animation: modal-zoom 0.3s ease forwards;
+    }
+    @keyframes modal-zoom {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #modal-header {
+      display: flex;
+      align-items: center;
+      padding: 18px 24px;
+      border-bottom: 1px solid #414a5a;
+      gap: 20px;
+    }
+    #modal-header img {
+      height: 120px;
+      width: 120px;
+      border-radius: 15px;
+      object-fit: cover;
+      box-shadow: 0 0 14px #f0a500a0;
+    }
+    #modal-header h2 {
+      color: #f0a500;
+      font-weight: 900;
+      font-size: 2rem;
+      flex-grow: 1;
+      text-shadow: 0 0 12px #f0a500cc;
+    }
+    #modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 2.4rem;
+      color: #f0a500;
+      cursor: pointer;
+      font-weight: 900;
+      padding: 10px;
+      line-height: 1;
+      transition: color 0.3s ease;
+    }
+    #modal-close-btn:hover {
+      color: #fab005;
+    }
+    #modal-body {
+      padding: 20px 24px 32px 24px;
+      color: #ccc;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    #modal-media {
+      margin-top: 16px;
+      border-radius: 12px;
+      background: #121212;
+      box-shadow: 0 0 20px #f0a500a0 inset;
+      overflow: hidden;
+    }
+    #modal-media audio, #modal-media video {
+      display: block;
+      width: 100%;
+      border-radius: 12px;
+      outline: none;
+      background: black;
+      box-shadow: 0 0 20px inset #f0a500;
+    }
+
+    /* Footer */
+    footer {
+      background: #182848;
+      text-align: center;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      color: #aaa;
+      user-select: none;
+      font-weight: 500;
+      box-shadow: inset 0 2px 8px #0e1622;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      header .search-bar {
+        margin-left: 0;
+        margin-top: 14px;
+        width: 100%;
+        max-width: none;
+      }
+      #modal-header {
+        flex-direction: column;
+        gap: 12px;
+      }
+      #modal-header img {
+        width: 100px;
+        height: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>A1 Multimedia Hub</h1>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24"><path d="M21.71 20.29l-3.388-3.387A7.928 7.928 0 0016 10a8 8 0 10-8 8 7.928 7.928 0 006.902-3.677l3.387 3.387a.996.996 0 001.414 0 .996.996 0 000-1.414zM10 16a6 6 0 110-12 6 6 0 010 12z"/></svg>
+      <input type="search" id="searchInput" placeholder="Search..." aria-label="Search items" />
+    </div>
+  </header>
+  <main id="itemsContainer" aria-live="polite" aria-atomic="true">
+    <!-- Items will be populated by JS -->
+  </main>
+
+  <!-- Modal Preview -->
+  <div id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+    <div id="modal-content">
+      <div id="modal-header">
+        <img src="" alt="" id="modal-thumbnail" />
+        <h2 id="modal-title"></h2>
+        <button id="modal-close-btn" aria-label="Close preview">&times;</button>
+      </div>
+      <div id="modal-body">
+        <p id="modal-description"></p>
+        <div id="modal-media" aria-live="polite" aria-atomic="true"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2024 A1 Multimedia Hub. All Rights Reserved.
+  </footer>
+
+  <script>
+    (() => {
+      // Demo data for items
+      const items = [
+        {
+          id: 'item1',
+          title: 'Electric Sunset - Chillwave Beats',
+          description: 'An ambient chillwave track with warm synth layers and smooth bass. Perfect for relaxing or focusing.',
+          thumbnail: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=70',
+          mediaType: 'audio',
+          mediaSrc: 'https://sample-videos.com/audio/mp3/crowd-cheering.mp3',
+          downloadLink: 'https://sample-videos.com/audio/mp3/crowd-cheering.mp3'
+        },
+        {
+          id: 'item2',
+          title: 'Mountain Peaks - Scenic Travel Video',
+          description: 'Beautiful footage of mountain ranges at sunset, combined with relaxing instrumental music.',
+          thumbnail: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=300&q=70',
+          mediaType: 'video',
+          mediaSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+          downloadLink: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4'
+        },
+        {
+          id: 'item3',
+          title: 'Retro Arcade Game',
+          description: 'A unique retro-style arcade game that you can play directly in your browser.',
+          thumbnail: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=70',
+          mediaType: 'game',
+          mediaSrc: '',
+          downloadLink: 'https://example.com/downloads/retro-arcade-game.zip'
+        },
+        {
+          id: 'item4',
+          title: 'Meditation Soundscape',
+          description: 'Relaxing meditation melodies with nature sounds to help you unwind and focus your mind.',
+          thumbnail: 'https://images.unsplash.com/photo-1504595403659-9088ce801e29?auto=format&fit=crop&w=300&q=70',
+          mediaType: 'audio',
+          mediaSrc: 'https://sample-videos.com/audio/mp3/wave.mp3',
+          downloadLink: 'https://sample-videos.com/audio/mp3/wave.mp3'
+        },
+        {
+          id: 'item5',
+          title: 'City Timelapse',
+          description: 'A stunning timelapse video showing city lights at night and bustling street activity.',
+          thumbnail: 'https://images.unsplash.com/photo-1468071174046-657d9d351a40?auto=format&fit=crop&w=300&q=70',
+          mediaType: 'video',
+          mediaSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+          downloadLink: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4'
+        }
+      ];
+
+      const itemsContainer = document.getElementById('itemsContainer');
+      const modalOverlay = document.getElementById('modal-overlay');
+      const modalThumbnail = document.getElementById('modal-thumbnail');
+      const modalTitle = document.getElementById('modal-title');
+      const modalDescription = document.getElementById('modal-description');
+      const modalMedia = document.getElementById('modal-media');
+      const modalCloseBtn = document.getElementById('modal-close-btn');
+      const searchInput = document.getElementById('searchInput');
+
+      // Create item card element
+      function createItemCard(item) {
+        const card = document.createElement('article');
+        card.className = 'item-card';
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${item.title} - ${item.description}`);
+
+        const thumbDiv = document.createElement('div');
+        thumbDiv.className = 'item-thumbnail';
+        const img = document.createElement('img');
+        img.src = item.thumbnail;
+        img.alt = item.title + ' thumbnail';
+        thumbDiv.appendChild(img);
+
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'item-title';
+        titleEl.textContent = item.title;
+
+        const descEl = document.createElement('p');
+        descEl.className = 'item-desc';
+        descEl.textContent = item.description;
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'item-actions';
+
+        // Preview button
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'action-btn';
+        previewBtn.textContent = 'Preview';
+        previewBtn.setAttribute('aria-label', `Preview ${item.title}`);
+        previewBtn.addEventListener('click', () => openModal(item));
+        actionsDiv.appendChild(previewBtn);
+
+        // Play button (only for audio/video)
+        const playBtn = document.createElement('button');
+        playBtn.className = 'action-btn play-btn';
+        playBtn.textContent = 'Play';
+        playBtn.setAttribute('aria-label', `Play ${item.title}`);
+        if (item.mediaType === 'audio' || item.mediaType === 'video') {
+          playBtn.addEventListener('click', () => playMediaInline(card, item));
+        } else {
+          playBtn.disabled = true;
+        }
+        actionsDiv.appendChild(playBtn);
+
+        // Download button
+        const downloadBtn = document.createElement('a');
+        downloadBtn.className = 'action-btn';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.setAttribute('aria-label', `Download ${item.title}`);
+        downloadBtn.href = item.downloadLink;
+        downloadBtn.target = '_blank';
+        downloadBtn.rel = 'noopener noreferrer';
+        actionsDiv.appendChild(downloadBtn);
+
+        card.appendChild(thumbDiv);
+        card.appendChild(titleEl);
+        card.appendChild(descEl);
+        card.appendChild(actionsDiv);
+
+        return card;
+      }
+
+      // Inline media player playback inside card
+      function playMediaInline(card, item) {
+        // Check if media player already exists, remove it first
+        const existingPlayer = card.querySelector('.inline-player');
+        if (existingPlayer) {
+          existingPlayer.remove();
+          return;
+        }
+        // Create media element
+        let mediaEl;
+        if (item.mediaType === 'audio') {
+          mediaEl = document.createElement('audio');
+          mediaEl.controls = true;
+          mediaEl.autoplay = true;
+          mediaEl.src = item.mediaSrc;
+          mediaEl.className = 'inline-player';
+          mediaEl.style.marginTop = '12px';
+          mediaEl.style.borderRadius = '10px';
+          mediaEl.style.width = '100%';
+          card.appendChild(mediaEl);
+        } else if (item.mediaType === 'video') {
+          mediaEl = document.createElement('video');
+          mediaEl.controls = true;
+          mediaEl.autoplay = true;
+          mediaEl.src = item.mediaSrc;
+          mediaEl.className = 'inline-player';
+          mediaEl.style.marginTop = '12px';
+          mediaEl.style.borderRadius = '10px';
+          mediaEl.style.width = '100%';
+          mediaEl.style.maxHeight = '220px';
+          card.appendChild(mediaEl);
+        }
+      }
+
+      function openModal(item) {
+        modalThumbnail.src = item.thumbnail;
+        modalThumbnail.alt = item.title + ' preview thumbnail';
+        modalTitle.textContent = item.title;
+        modalDescription.textContent = item.description;
+
+        // Clear previous media content
+        modalMedia.innerHTML = '';
+
+        if (item.mediaType === 'audio') {
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.src = item.mediaSrc;
+          audio.autoplay = true;
+          audio.setAttribute('aria-label', item.title + ' audio preview');
+          modalMedia.appendChild(audio);
+        } else if (item.mediaType === 'video') {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.src = item.mediaSrc;
+          video.autoplay = true;
+          video.muted = true; // avoid autoplay blocking
+          video.loop = true;
+          video.playsInline = true;
+          video.setAttribute('aria-label', item.title + ' video preview');
+          modalMedia.appendChild(video);
+        } else if (item.mediaType === 'game') {
+          // For "game" just display a placeholder message with download prompt
+          const placeholder = document.createElement('div');
+          placeholder.style.padding = '20px';
+          placeholder.style.textAlign = 'center';
+          placeholder.style.color = '#f0a500';
+          placeholder.style.fontWeight = '700';
+          placeholder.textContent = 'Playable games are coming soon! Please download to enjoy.';
+          modalMedia.appendChild(placeholder);
+        } else {
+          modalMedia.textContent = 'Preview not available.';
+        }
+
+        modalOverlay.classList.add('active');
+        modalOverlay.focus();
+      }
+
+      function closeModal() {
+        modalOverlay.classList.remove('active');
+        modalMedia.innerHTML = ''; // stop media playback cleanup
+      }
+
+      // Search filter logic
+      function searchItems() {
+        const filter = searchInput.value.trim().toLowerCase();
+        itemsContainer.innerHTML = '';
+        const filtered = items.filter(i => i.title.toLowerCase().includes(filter) || i.description.toLowerCase().includes(filter));
+        if(filtered.length === 0) {
+          const noRes = document.createElement('p');
+          noRes.style.color = '#f05e5e';
+          noRes.style.fontWeight = '700';
+          noRes.style.fontSize = '1.2rem';
+          noRes.textContent = 'No items found. Try different keywords.';
+          itemsContainer.appendChild(noRes);
+          return;
+        }
+        filtered.forEach(item => {
+          const card = createItemCard(item);
+          itemsContainer.appendChild(card);
+        });
+      }
+
+      // Keyboard accessibility for modal close (Escape key)
+      window.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+          closeModal();
+        }
+      });
+
+      modalCloseBtn.addEventListener('click', closeModal);
+
+      // Close modal on overlay click (but not modal content)
+      modalOverlay.addEventListener('click', e => {
+        if (e.target === modalOverlay) {
+          closeModal();
+        }
+      });
+
+      // Initialize page with all items
+      function init() {
+        searchItems();
+      }
+
+      searchInput.addEventListener('input', searchItems);
+
+      init();
+    })();
+  </script>
+</body>
+</html>
+
