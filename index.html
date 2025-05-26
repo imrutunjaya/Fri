@@ -5,32 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MS Search Topbar with Pull Menu</title>
   <style>
-    /* Importing a modern system font stack */
     body {
       margin: 0;
-      background-color: #000000; /* Fully pitch black */
+      background-color: #000000;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
         Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
-
-    /* Top bar container with black background */
-    .topbar {
-      position: relative;
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 10px 20px 10px 20px;
-      background-color: #000000; /* pure black */
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+    .topbar {
+      position: relative;
+      background-color: #000000;
       border-bottom: 1px solid #222;
       user-select: none;
       overflow: visible;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       z-index: 1002;
     }
-
-    /* Mini horizontal line at the very top for toggling the menu */
     .mini-line-container {
       position: fixed;
       top: 4px;
@@ -44,28 +49,26 @@
       align-items: center;
       z-index: 1100;
       user-select: none;
-      /* For touch-friendly area */
       padding: 8px 0;
+      touch-action: none;
     }
     .mini-line {
       width: 36px;
       height: 3px;
       background: #666;
       border-radius: 3px;
-      position: relative;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
       box-shadow: 0 0 8px #333;
     }
-    /* Animate mini line horizontally when active */
     .mini-line.active {
       animation: miniLinePulse 1.2s ease-in-out infinite;
+      background: #aaccff;
+      box-shadow: 0 0 15px #66aaff;
     }
     @keyframes miniLinePulse {
       0%, 100% { box-shadow: 0 0 8px #333; background: #666; }
       50%      { box-shadow: 0 0 15px #66aaff; background: #aaccff; }
     }
-
-    /* MS logo box */
     .logo-box {
       width: 60px;
       height: 40px;
@@ -76,12 +79,9 @@
       justify-content: center;
       cursor: default;
       user-select: none;
-      box-shadow:
-        inset 0 0 4px #222;
+      box-shadow: inset 0 0 4px #222;
       flex-shrink: 0;
     }
-
-    /* White line MS logo - using SVG lines */
     svg.ms-logo {
       width: 40px;
       height: 24px;
@@ -89,34 +89,28 @@
       stroke-width: 1.3;
       stroke-linecap: round;
     }
-
-    /* Loader box starts small square with slightly rounded edges, expands wide rectangle */
     .loader-box {
       background-color: #111;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: visible;
-
-      width: 40px;
-      height: 40px;
       border-radius: 10px;
-      border: 1px solid #444; /* Thin border */
-
-      transition:
-        width 0.4s ease,
-        border-radius 0.4s ease;
-      flex-shrink: 0;
+      border: 1px solid #444;
       box-sizing: border-box;
+      flex-shrink: 1;
+      height: 40px;
+      width: 40px;
+      min-width: 40px;
+      transition: width 0.4s ease, border-radius 0.4s ease;
+      overflow: hidden;
+      position: relative;
     }
-    /* Expanded state */
     .loader-box.expanded {
       width: 100%;
-      max-width: 600px; /* Limit max width for large screens */
+      min-width: 0;
+      max-width: calc(100% - 130px);
       border-radius: 10px;
     }
-
-    /* Circular spinner container */
     .circular-spinner {
       position: relative;
       width: 24px;
@@ -124,9 +118,8 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-shrink: 0;
     }
-
-    /* Each thin line in spinner */
     .spinner-line {
       position: absolute;
       top: 50%;
@@ -139,7 +132,6 @@
       opacity: 0.15;
       animation: fadeAnim 1.2s linear infinite;
     }
-    /* 12 lines spaced every 30 degrees */
     .spinner-line:nth-child(1)  { transform: rotate(0deg) translate(-50%, -100%);  animation-delay: 0s;    }
     .spinner-line:nth-child(2)  { transform: rotate(30deg) translate(-50%, -100%); animation-delay: 0.1s;  }
     .spinner-line:nth-child(3)  { transform: rotate(60deg) translate(-50%, -100%); animation-delay: 0.2s;  }
@@ -152,18 +144,15 @@
     .spinner-line:nth-child(10) { transform: rotate(270deg) translate(-50%, -100%);animation-delay: 0.9s;  }
     .spinner-line:nth-child(11) { transform: rotate(300deg) translate(-50%, -100%);animation-delay: 1.0s;  }
     .spinner-line:nth-child(12) { transform: rotate(330deg) translate(-50%, -100%);animation-delay: 1.1s;  }
-
     @keyframes fadeAnim {
       0%   { opacity: 1; }
       100% { opacity: 0.15; }
     }
-
-    /* Search input style after loader finishes */
     .search-input {
-      width: 100%;  /* Fill the container width */
+      width: 100%;
       height: 32px;
       border-radius: 10px;
-      border: 1px solid #444; /* Thin border */
+      border: 1px solid #444;
       background-color: #111;
       color: white;
       font-size: 16px;
@@ -173,6 +162,11 @@
       transition: border-color 0.3s ease, outline-color 0.3s ease;
       font-family: inherit;
       box-sizing: border-box;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .search-input.visible {
+      opacity: 1;
     }
     .search-input::placeholder {
       color: #888;
@@ -181,11 +175,9 @@
       border-color: #66aaff;
       outline: 2px solid #66aaff;
     }
-
-    /* Pull-down menu container */
     .pull-menu {
       position: fixed;
-      top: 60px; /* directly below the topbar */
+      top: 60px;
       left: 50%;
       transform: translateX(-50%) translateY(-20px);
       background-color: #111;
@@ -205,8 +197,6 @@
       pointer-events: auto;
       transform: translateX(-50%) translateY(0);
     }
-
-    /* Animated pull-down "string" container */
     .pull-string-container {
       position: absolute;
       top: -28px;
@@ -240,15 +230,11 @@
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 0.6s ease-out;
     }
-
-    /* Menu items container */
     .menu-items {
       display: flex;
       flex-direction: column;
       padding: 12px 0;
     }
-
-    /* Each menu item with icon and label */
     .menu-item {
       display: flex;
       gap: 12px;
@@ -263,7 +249,6 @@
       background-color: #223344;
       color: #66aaff;
     }
-    /* Icon container */
     .menu-icon {
       width: 20px;
       height: 20px;
@@ -274,23 +259,22 @@
       fill: none;
       flex-shrink: 0;
     }
-
-    /* Page name container */
     .page-name {
-      margin-left: auto;
+      margin-left: 16px;
       color: #666;
       font-size: 14px;
       font-weight: 400;
       user-select: none;
       white-space: nowrap;
-      padding-left: 16px;
       flex-shrink: 0;
       font-family: inherit;
       letter-spacing: 0.05em;
+      max-width: 130px;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-
-    /* Responsive adjustments */
-    @media (max-width: 400px) {
+    @media (max-width: 450px) {
       .logo-box {
         width: 50px;
         height: 36px;
@@ -300,56 +284,54 @@
         height: 20px;
       }
       .loader-box.expanded {
-        max-width: 90vw;
+        max-width: calc(100% - 100px);
       }
       .pull-menu {
         width: 90vw;
         max-width: none;
       }
+      .page-name {
+        max-width: 90px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="topbar" role="banner" aria-label="Top navigation bar">
-    <!-- Mini horizontal line toggler -->
-    <div class="mini-line-container" id="miniLineBtn" title="Toggle menu" role="button" aria-pressed="false" tabindex="0">
-      <div class="mini-line" id="miniLine"></div>
-    </div>
-
-    <div class="logo-box" aria-label="MS logo">
-      <svg class="ms-logo" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" >
-        <!-- Letter M -->
-        <path d="M2 22 L2 2 L10 18 L18 2 L18 22" />
-        <!-- Letter S -->
-        <path d="M22 6
-                 C22 6, 30 6, 30 12
-                 C30 18, 22 18, 22 18" />
-      </svg>
-    </div>
-
-    <div class="loader-box" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading search" id="loaderBox">
-      <div class="circular-spinner" aria-hidden="true">
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-        <div class="spinner-line"></div>
-      </div>
-    </div>
-
-    <div class="page-name" id="pageName" aria-live="polite" aria-atomic="true" aria-label="Page name"></div>
+  <div class="mini-line-container" id="miniLineBtn" title="Toggle menu" role="button" aria-pressed="false" tabindex="0">
+    <div class="mini-line" id="miniLine"></div>
   </div>
 
-  <!-- Pull-down menu container -->
+  <div class="topbar" role="banner" aria-label="Top navigation bar">
+    <div class="container">
+      <div class="logo-box" aria-label="MS logo">
+        <svg class="ms-logo" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" >
+          <path d="M2 22 L2 2 L10 18 L18 2 L18 22" />
+          <path d="M22 6 C22 6, 30 6, 30 12 C30 18, 22 18, 22 18" />
+        </svg>
+      </div>
+
+      <div class="loader-box" role="status" aria-live="polite" aria-atomic="true" aria-label="Loading search" id="loaderBox">
+        <div class="circular-spinner" aria-hidden="true">
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+          <div class="spinner-line"></div>
+        </div>
+      </div>
+
+      <div class="page-name" id="pageName" aria-live="polite" aria-atomic="true" aria-label="Page name"></div>
+    </div>
+  </div>
+
   <div class="pull-menu" id="pullMenu" aria-hidden="true" role="menu" aria-label="Options menu">
-    <!-- Pull string animation SVG -->
     <div class="pull-string-container" aria-hidden="true" >
       <svg class="pull-string" width="40" height="40" viewBox="0 0 40 40" >
         <path d="M10 30 Q20 10 30 30" />
@@ -395,28 +377,34 @@
     const pageName = document.getElementById('pageName');
     const pullStringSvg = pullMenu.querySelector('.pull-string');
 
-    // Get page title or fallback text
+    // Set page name from document.title or fallback
     const title = document.title || window.location.pathname.split('/').filter(Boolean).pop() || 'Home';
     pageName.textContent = title;
 
-    // Loading animation and expand input after 3s
+    // Expand loader and replace with search input after 3 seconds
     setTimeout(() => {
       loaderBox.classList.add('expanded');
       setTimeout(() => {
+        // Clear loader content
         loaderBox.innerHTML = '';
+
+        // Create search input
         const input = document.createElement('input');
         input.type = 'search';
         input.className = 'search-input';
         input.placeholder = 'Search...';
         input.setAttribute('aria-label', 'Search');
         loaderBox.appendChild(input);
-        input.focus();
+        // Fade input in
+        requestAnimationFrame(() => {
+          input.classList.add('visible');
+          input.focus();
+        });
       }, 400);
     }, 3000);
 
-    // Toggle menu on mini line click
+    // Toggle menu functionality
     let menuVisible = false;
-
     miniLineBtn.addEventListener('click', toggleMenu);
     miniLineBtn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -425,46 +413,67 @@
       }
     });
 
-    // Variables for pull-down detecting
+    // Variables to track pull gesture
     let startY = null;
-    let currentY = null;
-    let pulling = false;
-    const thresholdToOpen = 60; // pixels to pull down before menu opens
+    let isPulling = false;
+    const threshold = 60;
 
-    // Support touch pull down on mini line container
+    // Touch events for pull-down
     miniLineBtn.addEventListener('touchstart', (e) => {
       if (menuVisible) return;
       if (e.touches.length === 1) {
         startY = e.touches[0].clientY;
-        pulling = true;
+        isPulling = true;
         pullStringSvg.classList.remove('animate');
       }
     });
-
     miniLineBtn.addEventListener('touchmove', (e) => {
-      if (!pulling || !startY) return;
-      currentY = e.touches[0].clientY;
+      if (!isPulling || !startY) return;
+      const currentY = e.touches[0].clientY;
       let diff = currentY - startY;
-      if(diff > 0) {
-        // Map diff to a max 50 max stroke offset decrease
+      if (diff > 0) {
         let offset = Math.max(50 - diff, 0);
         pullStringSvg.style.strokeDashoffset = offset;
       }
     }, {passive: true});
-
     miniLineBtn.addEventListener('touchend', (e) => {
-      if (!pulling) return;
-      pulling = false;
-      let diff = currentY - startY;
-      if(diff > thresholdToOpen) {
-        // Open menu
+      if (!isPulling) return;
+      isPulling = false;
+      const endY = e.changedTouches[0].clientY;
+      if ((endY - startY) > threshold) {
         openMenu();
       } else {
-        // Reset pull string strokeDashoffset
         pullStringSvg.style.strokeDashoffset = 50;
       }
       startY = null;
-      currentY = null;
+    });
+
+    // Mouse events for pull-down (desktop)
+    miniLineBtn.addEventListener('mousedown', (e) => {
+      if (menuVisible) return;
+      startY = e.clientY;
+      isPulling = true;
+      pullStringSvg.classList.remove('animate');
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isPulling || !startY) return;
+      let diff = e.clientY - startY;
+      if (diff > 0) {
+        let offset = Math.max(50 - diff, 0);
+        pullStringSvg.style.strokeDashoffset = offset;
+      }
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (!isPulling) return;
+      isPulling = false;
+      let diff = e.clientY - startY;
+      if (diff > threshold) {
+        openMenu();
+      } else {
+        pullStringSvg.style.strokeDashoffset = 50;
+      }
+      startY = null;
     });
 
     function toggleMenu() {
@@ -480,7 +489,6 @@
       miniLine.classList.add('active');
       pullMenu.classList.add('active');
       pullMenu.setAttribute('aria-hidden', 'false');
-      // Animate pull string path
       pullStringSvg.classList.add('animate');
     }
 
@@ -489,11 +497,17 @@
       miniLine.classList.remove('active');
       pullMenu.classList.remove('active');
       pullMenu.setAttribute('aria-hidden', 'true');
-      // Reset pull string dashoffset instantly
       pullStringSvg.style.strokeDashoffset = 50;
       pullStringSvg.classList.remove('animate');
     }
+
+    // Accessibility: close menu on escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === "Escape" && menuVisible) {
+        closeMenu();
+        miniLineBtn.focus();
+      }
+    });
   </script>
 </body>
 </html>
-
