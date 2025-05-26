@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MS Search Topbar with Smooth Pull-Down Scroll Menu</title>
+<title>MS Search Topbar with Improved 3D Pull-Down Menu</title>
 <style>
   :root {
     --background-color: #0a0a0a;
@@ -66,16 +66,18 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    transform: translateY(-100%);
+    transform: translateY(-100%) rotateX(0deg);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    perspective: 800px;
+    perspective: 1000px;
     box-shadow: inset 0 0 150px rgba(0,0,0,0.8);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   /* When fully open */
   #dropdown-menu.open {
-    transform: translateY(0);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0) rotateX(60deg);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Container holding folding side panels */
@@ -404,59 +406,48 @@
   let isOpen = false;
   let isAnimating = false;
 
-  // Constants for pull down interaction
-  const maxPullDistance = 350; // max pixels to pull
-  const pullThreshold = 140; // pixels needed to open fully
+  const maxPullDistance = 350;
+  const pullThreshold = 140;
   let startY = 0;
-  let currentY = 0;
   let pullDistance = 0;
   let dragging = false;
 
-  // Helper easing function for smooth animation
   function easeOutQuad(t) {
     return t * (2 - t);
   }
 
   function applyPullTransform(distance) {
-    // Limit distance to maxPullDistance with easing effect
     let pullRatio = distance / maxPullDistance;
     if (pullRatio > 1) pullRatio = 1;
-    // Apply easing for smoothness
     const eased = easeOutQuad(pullRatio);
     const translateY = eased * maxPullDistance;
-
-    // Transform dropdown menu down by translateY
-    dropdownMenu.style.transform = `translateY(${translateY - 100}%)`; // -100% to start hidden
-
-    // Folding panels rotation scales with pull progress but limited within [0,1]
     const foldProgress = Math.min(pullRatio, 1);
-    // Calculate folds rotation in degrees (convert from radians)
     const maxFoldX = 60;
     const maxFoldZ = 25;
+
+    // Apply combined translate and rotateX for 3D pulled effect
+    const rotateXVal = eased * 45; // max 45 deg rotation for more natural
+    dropdownMenu.style.transform = `translateY(${translateY - 100}%) rotateX(${rotateXVal}deg)`;
 
     foldLeft.style.transform = `rotateX(${foldProgress * maxFoldX}deg) rotateZ(${-foldProgress * maxFoldZ}deg)`;
     foldRight.style.transform = `rotateX(${foldProgress * maxFoldX}deg) rotateZ(${foldProgress * maxFoldZ}deg)`;
 
-    // Menu content opacity scales with fold progress and pull progress with clamp
     menuContent.style.opacity = foldProgress;
-    if (foldProgress > 0.05) {
-      menuContent.style.pointerEvents = 'auto';
-    } else {
-      menuContent.style.pointerEvents = 'none';
-    }
+    menuContent.style.pointerEvents = foldProgress > 0.05 ? 'auto' : 'none';
   }
 
   function resetPull() {
-    // Animate back to closed state smoothly
     dropdownMenu.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    dropdownMenu.style.transform = 'translateY(-100%)';
     foldLeft.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
     foldRight.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    menuContent.style.transition = 'opacity 0.3s ease';
+
+    dropdownMenu.style.transform = 'translateY(-100%) rotateX(0deg)';
     foldLeft.style.transform = 'rotateX(0deg) rotateZ(0deg)';
     foldRight.style.transform = 'rotateX(0deg) rotateZ(0deg)';
-    menuContent.style.transition = 'opacity 0.3s ease';
     menuContent.style.opacity = 0;
     menuContent.style.pointerEvents = 'none';
+
     setTimeout(() => {
       dropdownMenu.style.transition = '';
       foldLeft.style.transition = '';
@@ -467,12 +458,13 @@
 
   function finalizeOpen() {
     dropdownMenu.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    dropdownMenu.style.transform = 'translateY(0)';
     foldLeft.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
     foldRight.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    menuContent.style.transition = 'opacity 0.3s ease';
+
+    dropdownMenu.style.transform = 'translateY(0) rotateX(45deg)';
     foldLeft.style.transform = `rotateX(60deg) rotateZ(-25deg)`;
     foldRight.style.transform = `rotateX(60deg) rotateZ(25deg)`;
-    menuContent.style.transition = 'opacity 0.3s ease';
     menuContent.style.opacity = 1;
     menuContent.style.pointerEvents = 'auto';
 
@@ -490,6 +482,7 @@
   }
 
   function finalizeClose() {
+    if (isAnimating) return;
     isAnimating = true;
     resetPull();
     setTimeout(() => {
@@ -500,26 +493,27 @@
     }, 310);
   }
 
-  // Pointer event handlers
   function onPointerDown(e) {
     if (isAnimating) return;
     dragging = true;
     startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
     pullDistance = 0;
-
-    // Cancel any transition so drag is immediate
     dropdownMenu.style.transition = '';
     foldLeft.style.transition = '';
     foldRight.style.transition = '';
     menuContent.style.transition = '';
+    try {
+      e.target.setPointerCapture(e.pointerId);
+    } catch(e) {
+      // ignore if not supported
+    }
   }
 
   function onPointerMove(e) {
     if (!dragging) return;
     currentY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
     pullDistance = currentY - startY;
-
-    if (pullDistance < 0) pullDistance = 0; // no upward drag
+    if (pullDistance < 0) pullDistance = 0;
     if (pullDistance > maxPullDistance) pullDistance = maxPullDistance;
 
     applyPullTransform(pullDistance);
@@ -528,8 +522,12 @@
   function onPointerUp(e) {
     if (!dragging) return;
     dragging = false;
+    try {
+      e.target.releasePointerCapture(e.pointerId);
+    } catch(e) {
+      // ignore if not supported
+    }
 
-    // Decide whether to open or cancel based on pullDistance and threshold
     if (pullDistance >= pullThreshold) {
       isAnimating = true;
       finalizeOpen();
@@ -538,11 +536,14 @@
     }
   }
 
-  // Click toggle for users who don't drag
-  pullHandle.addEventListener('click', () => {
-    if (dragging) return; // ignore click during drag
+  // Toggle menu on single click (only if not dragging)
+  let clickPrevent = false;
+  pullHandle.addEventListener('click', e => {
+    if (clickPrevent) {
+      clickPrevent = false;
+      return; // prevent toggle immediately after drag
+    }
     if (isAnimating) return;
-
     if (isOpen) {
       finalizeClose();
     } else {
@@ -551,7 +552,6 @@
     }
   });
 
-  // Keyboard accessibility: space or enter toggles menu
   pullHandle.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -559,29 +559,24 @@
     }
   });
 
-  // Handle pointer / touch events for drag
   pullHandle.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-  window.addEventListener('pointercancel', onPointerUp);
-  window.addEventListener('touchcancel', onPointerUp);
+  pullHandle.addEventListener('pointermove', onPointerMove);
+  pullHandle.addEventListener('pointerup', e => { onPointerUp(e); clickPrevent = true; });
+  pullHandle.addEventListener('pointercancel', e => { onPointerUp(e); clickPrevent = true; });
+  pullHandle.addEventListener('touchcancel', e => { onPointerUp(e); clickPrevent = true; });
 
-  // ESC key closes menu if open and menu content is focused
+  // ESC closes menu if focused
   menuContent.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      if (isOpen && !isAnimating) {
-        finalizeClose();
-        pullHandle.focus();
-      }
+    if (e.key === 'Escape' && isOpen && !isAnimating) {
+      finalizeClose();
+      pullHandle.focus();
     }
   });
 
-  // Prevent scrolling when dropdown is open (optional)
-  function preventScroll(e) {
+  // Optional: disable scroll when menu is open
+  window.addEventListener('touchmove', e => {
     if (isOpen) e.preventDefault();
-  }
-  window.addEventListener('touchmove', preventScroll, { passive: false });
-
+  }, {passive:false});
 </script>
 
 </body>
